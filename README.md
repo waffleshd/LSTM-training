@@ -1,7 +1,35 @@
 # LSTM Training
-Bla bla bla
 
-## Some Notes
+A notebook on preparing data, and training an LSTM model on said data.
+
+# Table of Contents
+1. [Getting Started](#getting-started)
+    1. [Installation](#installation)
+2. [Notes on LSTMs](#notes-on-lstms)
+    1. [LSTM Cell](#lstm-cell)
+    2. [The Sliding Window](#the-sliding-window)
+    3. [LSTM Model](#lstm-model)
+
+# Getting Started
+## Installation
+To begin, initialize a virtual environment:
+```bash
+python -m venv .venv
+.venv/Scripts/activate
+```
+Next, install requirements from ```requirements.txt```
+```bash
+pip install requirements.txt
+```
+And that is it! If you have forked the entire repo, you should have everything you need to get started:
+- ```lstm.ipynb```
+- ```AirQualityUCI.csv```
+
+If you do not see ```AirQualityUCI.csv``` in your working direcory, make sure you install if from the [website](https://archive.ics.uci.edu/dataset/360/air+quality), and place it in the same directory as ```lstm.ipynb```. 
+
+# Notes on LSTMs
+These are my notes on different topics pertaining to LSTMs. These notes reflect my process of learning how LSTMs work, and surrounding information. If you want some extra reading on how LSTMs work, this is a good place to begin, however they are not necessarily fully comprehensive, as again, they reflect what I was trying to learn at the time.
+## LSTM Cell
 A lot of this stuff is confusing at the moment, so I am going to do research on LSTMs, and try to understand what is going on. To begin, LSTM stands for "Long Short-Term Memory", and is very good for time-series data. It is very good at taking previous time data, and then using that to predict the future. 
 
 An LSTM maintains two separate vectors that it uses to predict the future:
@@ -66,29 +94,42 @@ At any point, we can then use the hidden step $h_t$ to predict the next value.
 ## The Sliding Window
 This also confused me for a while so let's walk through it briefly.
 
-We want to be able to train the model to predict some future gas concentration given some history of concentrations. For instance, we give the model the last 24 hours of data, and the model will attempt to predict the next hour's concentration. In order to do this, we need
-1. A split of training and testing data. Usually, an 80:20 split works well
-2. Blocks of 24 hour windows, and the next hour's concentration
+An LSTM is very good at predicting future values based on historical information. For this to work properly, we need to actually provide the model with historical data. To train, the model needs two things: 
+- past information, denoted as $X$(this is what we call a sliding window)
+- the current datapoint, denoted as $y$.
 
-Let's tackle 2. first. In order to train our model, we need input X and output y. We give the model X and then compare its answer with our true value y. 
+Essentially, for some set of data $d$ with size $N$, $$d = \{d_1,d_2,...,d_N\}$$ our sliding window $X$ of size $n$ at time $t$ is defined as $$X_t = \{d_{t-n},...,d_{t-2},d_{t-1}\}$$ At the same time, we have the actual value for the current time $$y_t = d_t$$
 
-Imagine an array: $$d=[1,2,3,4,5,6,7]$$
-Now, given some window size (in our case we will choose that to be 3), this is what each X and y would look like:
+This gives us two things: firstly, it gives us a window that we can pass to our model: this is what it will use to predict the next step in the sequence. Once it has given its prediction, we check it against the real value $y_t$, and use that to calculate *error* and adjust the model's parameters.
 
-$$X_1 = [1,2,3], y_1=4$$
-$$X_2 = [2,3,4], y_2=5$$
-$$X_3 = [3,4,5], y_3=6$$
-$$X_4 = [4,5,6], y_4=7$$
+Here is a hopefully simple example: $$d=\{1,2,3,4,5,6,7\}$$
+Now, given a window size of 3, this is what each set would look like
 
-This is now a very nice format for us to split the data! We can't exactly get an 80:20 split here, but a 90:10 will do. Our training set will look like: $$T=\{(X_1,y_1),(X_2,y_2),(X_3,y_3)\}$$
-and our test set: $$t=\{X_4,y_4\}$$
+$$X_1 = \{1,2,3\}, y_1=4$$
+$$X_2 = \{2,3,4\}, y_2=5$$
+$$X_3 = \{3,4,5\}, y_3=6$$
+$$X_4 = \{4,5,6\}, y_4=7$$
 
-In this way, we can use $T$ to train the LSTM, and at the end of each epoch, we test it against $t$ to see how it performs.
+Imagine passing $X_1$ into the model. The model outputs 3. We check it against $y_1=4$, and calculate an error. Then, we adjust our parameters, and repeat for $X_2,X_3,...$ 
+
+Another thing to note: when split up into windows, this is a very nice format for us to split the data easily. When training models, we want to have two datasets:
+- Training
+- Testing
+
+The training dataset is used to train the model, and get it to learn features from the data.
+
+The testing dataset is used to evaluate the model, and check how well it performs. We do this, as the model will never have seen the testing data, so if it is able to accurately predict values from completely new data, then it is trained well. 
+
+It is widely accepted that an 80:20 train-test split is a good starting point. In our example, we can get approximately such a split, and it would look like this:
+
+We have our training set
+$$T=\{(X_1,y_1),(X_2,y_2),(X_3,y_3)\}$$
+and our test set $$t=\{X_4,y_4\}$$
 
 ## LSTM Model
-Now it's time to figure out how to actually train this model. In this project, we will be using tensorflow keras' LSTM model. Looking at [this](https://towardsdatascience.com/lstm-framework-for-univariate-time-series-prediction-d9e7252699e/) article, I have a few questions about the training process that I would like to answer:
+Now it's time to figure out how to actually train this model. The previous sections were a more mathematical background on how LSTMs work. Here, we will dive into the programmatic part of training. In this project, we will be using tensorflow's Keras LSTM layer. Looking at [this](https://towardsdatascience.com/lstm-framework-for-univariate-time-series-prediction-d9e7252699e/) article, we might have a few questions about the training process that we would like to answer:
 
-1. LSTM parameters
+1. LSTM parameters (which do we care about?)
 2. Callbacks (what are they?)
 
 ### Tensorflow LSTM Parameters
@@ -142,7 +183,7 @@ This [Medium article](https://ppasumarthi-69210.medium.com/dissecting-the-role-o
 | ```True``` | Output is going to another LSTM layer |
 
 ### Tensorflow Callbacks
-Tensorflow are useful functions that allow us to modify the behavior of models at specific points in training:
+Callbacks are useful functions that allow us to modify the behavior of models at specific points in training:
 - At the start and end of an epoch
 - Before and after a batch is processed
 - At the start and end of training
@@ -161,8 +202,10 @@ These can be used to do some very nice things for us, like early stopping, loggi
 
 We can also define how frequently a model is saved with ```save_freq```. By default, it is every epoch. 
 
-**ProgbarLogger**: Simply logs metrics to stdout. Useful if you want to monitor training in your terminal.
+**ProgbarLogger**: Simply logs metrics to stdout. Useful if you want to monitor training in your terminal. This is also included by default, as long as ```verbose=True``` in the ```model.fit()``` parameters.
 
 **ReduceLROnPlateau**: This is somewhat similar to **LearningRateScheduler**, but this callback will decrease the learning rate once metrics have stopped improving. This is useful for reaching the global minimum. This callback takes similar params to the scheduler, such as ```monitor```, and ```patience```. However, this callback gives us a param ```factor```, which is a float between 0 and 1, determining by how much we shrink the learning rate.
 
 **TensorBoard**: This can be used to create visualizations of the metrics and training process.
+
+You'll see that in the notebook, I am using the **ReduceLROnPlateau** callback function.
