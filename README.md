@@ -70,7 +70,7 @@ $f_t, i_t$, and $o_t$ use the sigmoid activation function $\sigma$, which squish
 
 Note that the forget gate multiplies against the cell state $C_{t-1}$. The output multiplies $C_{t-1}$ position-by-position. For example, take the cell state and output vectors:
 
-$$f_t=\begin{bmatrix} 1 & 0.2 & 0 \end{bmatrix} C_{t-1}=\begin{bmatrix} 4 \\ 10 \\ 5 \end{bmatrix}$$
+$$f_t=\begin{bmatrix} 1 \\ 0.2 \\ 0 \end{bmatrix} C_{t-1}=\begin{bmatrix} 4 \\ 10 \\ 5 \end{bmatrix}$$
 
 These get multiplied and we get:
 
