@@ -84,3 +84,85 @@ This is now a very nice format for us to split the data! We can't exactly get an
 and our test set: $$t=\{X_4,y_4\}$$
 
 In this way, we can use $T$ to train the LSTM, and at the end of each epoch, we test it against $t$ to see how it performs.
+
+## LSTM Model
+Now it's time to figure out how to actually train this model. In this project, we will be using tensorflow keras' LSTM model. Looking at [this](https://towardsdatascience.com/lstm-framework-for-univariate-time-series-prediction-d9e7252699e/) article, I have a few questions about the training process that I would like to answer:
+
+1. LSTM parameters
+2. Callbacks (what are they?)
+
+### Tensorflow LSTM Parameters
+Tensorflow provides a good variety of parameters we can use to fine-tune our model. From tensorflow's [page](https://www.tensorflow.org/api_docs/python/tf/keras/layers/LSTM):
+
+```Python
+tf.keras.layers.LSTM(
+    units,
+    activation='tanh',
+    recurrent_activation='sigmoid',
+    use_bias=True,
+    kernel_initializer='glorot_uniform',
+    recurrent_initializer='orthogonal',
+    bias_initializer='zeros',
+    unit_forget_bias=True,
+    kernel_regularizer=None,
+    recurrent_regularizer=None,
+    bias_regularizer=None,
+    activity_regularizer=None,
+    kernel_constraint=None,
+    recurrent_constraint=None,
+    bias_constraint=None,
+    dropout=0.0,
+    recurrent_dropout=0.0,
+    seed=None,
+    return_sequences=False,
+    return_state=False,
+    go_backwards=False,
+    stateful=False,
+    unroll=False,
+    use_cudnn='auto',
+    **kwargs
+) 
+```
+
+Most of these parameters we won't need to touch, but there are a few that we should look at.
+
+```units```: This is the dimensionality of the output space. I.e., this is the number of neurons we have in this layer. The more units, the more features the model can learn, but the more intensive the training is.
+
+According to this [stack overflow answer](https://stackoverflow.com/a/44277785), the number of units dictates the size of the cell state $C_t$ and hidden step $h_t$. This makes sense, as a bigger dimensionality of $C_t$ would mean that the model can learn / remember more.
+
+```return_sequences```: This is a boolean switch which defines if we return just the final hidden state $h_t$ or not. With ```return_sequences=False```, the given layer will output a 2D shape: ```(batch_size, units)```. Otherwise, if ```return_sequences=True``` then a 3D shape will be output: ```(batch_size, time_steps, units)```. Here, ```time_steps``` is the last hidden step $h_{t-1}$. 
+
+Note that the name is *time_steps* and not *time_step*. This is because oftentimes, the "last" timestep is actually **all** of the previous timesteps $[h_1,h_2,...,h_{t-1}]$.
+
+This [Medium article](https://ppasumarthi-69210.medium.com/dissecting-the-role-of-return-state-and-return-seq-options-in-lstm-based-sequence-models-23345f88ab0a) states that when an LSTM layer is the final layer, then we don't need to output the previous timesteps. All we need is to output the current timestep $h_t$ in order for the output layer to compute the predicted value. However, when we are passing the current layer's output to another LSTM layer, we want all of the previous timesteps in order to make better predictions. Thus:
+
+| ```return_sequence``` | Use-case|
+| :--- | :--- |
+| ```False``` | Output is going to an output layer |
+| ```True``` | Output is going to another LSTM layer |
+
+### Tensorflow Callbacks
+Tensorflow are useful functions that allow us to modify the behavior of models at specific points in training:
+- At the start and end of an epoch
+- Before and after a batch is processed
+- At the start and end of training
+
+These can be used to do some very nice things for us, like early stopping, logging metrics, and more! Next, I want to explore some of the common callback functions and see if we should implement them into our LSTM model.
+
+**EarlyStopping**: Seems pretty self-explanatory. ```tf.keras.callbacks.EarlyStopping()``` has two interesting params:
+1. ```monitor```: the metric to monitor (loss, etc.)
+2. ```patience```: how many epochs the model should wait for until it stops early
+
+**History**: This callback is applied to every Keras model by default. It gets returned when calling the ```fit()``` method. All it does is record events during the training process.
+
+**LearningRateScheduler**: This callback is used at the beginning of each epoch. It takes ```scheduler``` as a param, which is a function dictating learning rate. Essentially, the function can update the learning rate as the epochs increase. For example, ```scheduler``` could be a function that uses regular learning rate during first 10 epochs, but then exponentially decreases it afterwards.
+
+**ModelCheckpoint**: This can be used to save a model at some point. The callback takes ```monitor```, meaning that saving depends on which param we monitor. For instance using ```val_loss``` as our monitor, the model will save depending on how good the loss is. 
+
+We can also define how frequently a model is saved with ```save_freq```. By default, it is every epoch. 
+
+**ProgbarLogger**: Simply logs metrics to stdout. Useful if you want to monitor training in your terminal.
+
+**ReduceLROnPlateau**: This is somewhat similar to **LearningRateScheduler**, but this callback will decrease the learning rate once metrics have stopped improving. This is useful for reaching the global minimum. This callback takes similar params to the scheduler, such as ```monitor```, and ```patience```. However, this callback gives us a param ```factor```, which is a float between 0 and 1, determining by how much we shrink the learning rate.
+
+**TensorBoard**: This can be used to create visualizations of the metrics and training process.
