@@ -60,6 +60,7 @@ Each component computes its output the same way. In general, this is how we calc
 4. Finally, we apply an activation function, either sigmoid or tanh ($\psi$)
 
 The final general formula for some component is:
+
 $$f_c=\psi(W_c \cdot [h_{t-1},x_t] + b_c)$$
 
 $f_t, i_t$, and $o_t$ use the sigmoid activation function $\sigma$, which squishes output values into a range between 0 and 1. $C̃_t$ uses the tanh activation function, which squishes values between -1 and 1.
@@ -72,6 +73,7 @@ Note that the forget gate multiplies against the cell state $C_{t-1}$. The outpu
 $$f_t=\begin{bmatrix} 1 \\ 0.2 \\ 0 \end{bmatrix} C_{t-1}=\begin{bmatrix} 4 \\ 10 \\ 5 \end{bmatrix}$$
 
 These get multiplied and we get:
+
 $$\begin{bmatrix} 1 \\ 0.2 \\ 0 \end{bmatrix} \odot \begin{bmatrix} 4 \\ 10 \\ 5 \end{bmatrix} = \begin{bmatrix} 4 \\ 2 \\ 0 \end{bmatrix}$$
 
 A few interesting things happen here:
@@ -80,13 +82,27 @@ A few interesting things happen here:
 3. With an output value between 0 and 1 (not inclusive), the corresponding cell state value is scaled down to a certain extent. A smaller number implies that the corresponding value should be forgotten "more", while a larger number is preserved more.
 
 With all this information, we can derive a formula for getting $C_t$ and $h_t:$
-1. The forget gate (or filter) is applied: $$f_t \odot C_{t-1}$$ Our cell state has been updated for the current timestep.
-2. The candidate proposes an addition, and the input gate scales that proposal: $$C̃_t \odot i_t$$
-3. We add the candidate's scaled proposal to our updated cell state, giving us our new cell state: $$C_t=(f_t \odot C_{t-1}) + (C̃_t \odot i_t)$$
-4. The output gate's value $o_t$ is multiplied by the new cell state which was passed through a tanh activation function in order to keep the output bounded. This gives us our hidden state: $$h_t = o_t \odot tanh(C_t)$$
+1. The forget gate (or filter) is applied: 
+
+$$f_t \odot C_{t-1}$$ 
+
+Our cell state has been updated for the current timestep.
+2. The candidate proposes an addition, and the input gate scales that proposal: 
+
+$$C̃_t \odot i_t$$
+
+3. We add the candidate's scaled proposal to our updated cell state, giving us our new cell state: 
+
+$$C_t=(f_t \odot C_{t-1}) + (C̃_t \odot i_t)$$
+
+4. The output gate's value $o_t$ is multiplied by the new cell state which was passed through a tanh activation function in order to keep the output bounded. This gives us our hidden state: 
+
+$$h_t = o_t \odot tanh(C_t)$$
 
 So, finally, we get:
+
 $$C_t=(f_t \odot C_{t-1}) + (C̃_t \odot i_t)$$
+
 $$h_t = o_t \odot tanh(C_t)$$
 
 At any point, we can then use the hidden step $h_t$ to predict the next value.
@@ -98,16 +114,30 @@ An LSTM is very good at predicting future values based on historical information
 - past information, denoted as $X$(this is what we call a sliding window)
 - the current datapoint, denoted as $y$.
 
-Essentially, for some set of data $d$ with size $N$, $$d = \{d_1,d_2,...,d_N\}$$ our sliding window $X$ of size $n$ at time $t$ is defined as $$X_t = \{d_{t-n},...,d_{t-2},d_{t-1}\}$$ At the same time, we have the actual value for the current time $$y_t = d_t$$
+Essentially, for some set of data $d$ with size $N$, 
+
+$$d = \{d_1,d_2,...,d_N\}$$
+
+our sliding window $X$ of size $n$ at time $t$ is defined as
+
+$$X_t = \{d_{t-n},...,d_{t-2},d_{t-1}\}$$ 
+
+At the same time, we have the actual value for the current time $$y_t = d_t$$
 
 This gives us two things: firstly, it gives us a window that we can pass to our model: this is what it will use to predict the next step in the sequence. Once it has given its prediction, we check it against the real value $y_t$, and use that to calculate *error* and adjust the model's parameters.
 
-Here is a hopefully simple example: $$d=\{1,2,3,4,5,6,7\}$$
+Here is a hopefully simple example: 
+
+$$d=\{1,2,3,4,5,6,7\}$$
+
 Now, given a window size of 3, this is what each set would look like
 
 $$X_1 = \{1,2,3\}, y_1=4$$
+
 $$X_2 = \{2,3,4\}, y_2=5$$
+
 $$X_3 = \{3,4,5\}, y_3=6$$
+
 $$X_4 = \{4,5,6\}, y_4=7$$
 
 Imagine passing $X_1$ into the model. The model outputs 3. We check it against $y_1=4$, and calculate an error. Then, we adjust our parameters, and repeat for $X_2,X_3,...$ 
@@ -123,7 +153,9 @@ The testing dataset is used to evaluate the model, and check how well it perform
 It is widely accepted that an 80:20 train-test split is a good starting point. In our example, we can get approximately such a split, and it would look like this:
 
 We have our training set
+
 $$T=\{(X_1,y_1),(X_2,y_2),(X_3,y_3)\}$$
+
 and our test set $$t=\{X_4,y_4\}$$
 
 ## LSTM Model
